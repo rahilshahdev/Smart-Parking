@@ -1,0 +1,20 @@
+LIBRARY parking_engine.dll
+
+EXPORTS
+engine_configure_slot
+engine_find_nearest_available_slot
+engine_get_available_count
+engine_get_hourly_rate
+engine_get_log
+engine_get_log_count
+engine_get_occupancy_rate
+engine_get_occupied_count
+engine_get_slot
+engine_get_total_revenue
+engine_get_total_slots
+engine_init
+engine_load_state
+engine_reset_all
+engine_save_state
+engine_set_hourly_rate
+engine_update_slot_state

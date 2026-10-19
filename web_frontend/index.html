@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Parking Allocation System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <!-- W3C Official WebRTC Adapter Shim for Universal Cross-Browser & Mobile Support -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/webrtc-adapter/9.0.1/adapter.min.js"></script>
+</head>
+<body>
+  <!-- Header -->
+  <header class="app-header">
+    <div class="header-top">
+      <div class="header-left">
+        <h1>Smart Parking Allocation System</h1>
+        <span class="header-tag">Browser Webcam + C Core Engine</span>
+      </div>
+      <div class="header-status-strip">
+        <span id="stream-info-badge" class="stream-info-badge" title="Active camera stream dimensions and frame rate">
+          Feed: Standby
+        </span>
+        <div class="engine-indicator">
+          <span class="status-marker" id="status-marker"></span>
+          <span id="txt-engine">Engine: Detecting...</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="header-controls-bar">
+      <!-- Real-time Web-side Camera Selector & Mobile Flip -->
+      <div class="control-group cam-group">
+        <label for="camera-select">Webcam:</label>
+        <select id="camera-select" aria-label="Select Webcam Device">
+          <option value="">Detecting cameras...</option>
+        </select>
+        <button id="btn-refresh-cams" class="btn-sm" aria-label="Refresh camera list">Refresh</button>
+        <button id="btn-flip-cam" class="btn-sm" aria-label="Flip between cameras" title="Flip / Switch Camera">Flip</button>
+      </div>
+
+      <!-- Resolution & FPS Selectors -->
+      <div class="control-group res-group">
+        <label for="resolution-select">Res:</label>
+        <select id="resolution-select" aria-label="Select Camera Resolution">
+          <option value="">Querying hardware...</option>
+        </select>
+      </div>
+
+      <div class="control-group fps-group">
+        <label for="fps-select">FPS:</label>
+        <select id="fps-select" aria-label="Select Camera Frame Rate">
+          <option value="">Querying...</option>
+        </select>
+      </div>
+
+      <!-- Google AI Studio Key Config -->
+      <div class="control-group key-group">
+        <label for="input-gemini-key">Google AI Studio Key:</label>
+        <input type="password" id="input-gemini-key" placeholder="AIzaSy... (from aistudio.google.com)" class="input-key" title="Get free key at aistudio.google.com">
+        <button id="btn-save-key" class="btn-sm">Save</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Grid -->
+  <main class="main-layout">
+    <!-- Video and Tracking -->
+    <section class="video-section">
+      <div class="video-container" id="video-container">
+        <!-- Native Hardware-Accelerated Browser Video with Mobile Autoplay Support -->
+        <video id="webcam-video" autoplay playsinline webkit-playsinline muted></video>
+        <!-- Overlay Canvas for Green/Red Boxes & Tracking -->
+        <canvas id="overlay-canvas" width="640" height="480"></canvas>
+        <!-- Mobile Gesture Tap Prompt Overlay (if browser blocks autoplay) -->
+        <div id="camera-tap-prompt" class="camera-tap-prompt" style="display: none;">
+          <p class="tap-prompt-text">Tap anywhere to start camera feed</p>
+          <button id="btn-tap-start" class="btn-primary">Enable Camera</button>
+        </div>
+      </div>
+
+      <!-- Action Toolbar -->
+      <div class="action-bar">
+        <button id="btn-auto-detect" class="btn-primary btn-auto-detect">
+          <span class="btn-progress-fill" id="detect-progress-fill" style="width: 0%;"></span>
+          <span class="btn-progress-text" id="detect-progress-text">Auto-Detect Paper Spots (Gemini 3.5 Flash-Lite)</span>
+        </button>
+        <button id="btn-empty-baseline" class="btn-secondary">
+          Set Empty Baseline
+        </button>
+        <button id="btn-toggle-edit" class="btn-secondary">
+          Draw / Adjust Boxes
+        </button>
+        <button id="btn-save-boxes" class="btn-success" style="display:none;">
+          Save Boxes
+        </button>
+        <button id="btn-clear-spots" class="btn-danger">
+          Clear All
+        </button>
+        <label class="toggle-scene-option" title="When enabled, Gemini Vision explains what is visible in the scene if no slots are detected">
+          <input type="checkbox" id="chk-scene-describe" checked>
+          <span>Describe scene if no spots detected</span>
+        </label>
+      </div>
+
+      <!-- AI Camera Scene Insight Box (Active when no spots are detected) -->
+      <div id="ai-scene-box" class="ai-scene-box" style="display: none;">
+        <div class="ai-scene-header">
+          <span class="ai-scene-title">AI Camera Scene Insight</span>
+          <button id="btn-close-scene" class="btn-scene-close" aria-label="Dismiss insight">&times;</button>
+        </div>
+        <div class="ai-scene-body" id="ai-scene-text"></div>
+      </div>
+
+      <p class="instruction-note">
+        Select your webcam from the dropdown. Draw parking boxes on paper and point the camera at them. Click <strong>Auto-Detect Paper Spots</strong> to snap tracking boxes automatically. Place a toy car in a spot to turn it red and start the parking timer.
+      </p>
+    </section>
+
+    <!-- Telemetry and Status -->
+    <section class="stats-section">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <span class="stat-label">Total Spots</span>
+          <span class="stat-value" id="val-total">0</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Available</span>
+          <span class="stat-value green-text" id="val-available">0</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Occupied</span>
+          <span class="stat-value red-text" id="val-occupied">0</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Revenue</span>
+          <span class="stat-value" id="val-revenue">INR 0.00</span>
+        </div>
+      </div>
+
+      <div class="occupancy-card">
+        <div class="occupancy-header">
+          <span>Occupancy Rate</span>
+          <span id="val-pct">0%</span>
+        </div>
+        <div class="occupancy-track">
+          <div class="occupancy-fill" id="occupancy-fill" style="width: 0%"></div>
+        </div>
+        <div class="target-row">
+          <span>Nearest Free Slot:</span>
+          <strong id="badge-nearest">None</strong>
+        </div>
+      </div>
+
+      <div class="slots-card">
+        <div class="slots-header">
+          <h2>Active Parking Spots</h2>
+        </div>
+        <div class="slots-list" id="slots-list">
+          <div class="empty-state">No parking spots active on screen. Point camera at drawn paper boxes and click "Auto-Detect Paper Spots".</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" style="display:none;"></div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

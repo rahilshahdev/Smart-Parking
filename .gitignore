@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Data / secrets
+data/gemini_key.txt
+data/parking_state.dat
+
+# OS junk
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+
+# Build artifacts
+*.o
+*.obj
