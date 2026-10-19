@@ -81,8 +81,8 @@ If you want to run the full stack locally with the native C shared library:
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/your-username/smart-parking-allocation-system.git
-cd smart-parking-allocation-system
+git clone https://github.com/rahilshahdev/Smart-Parking.git
+cd Smart-Parking
 
 # 2. Install Python dependencies
 pip install flask opencv-python requests google-genai
